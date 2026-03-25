@@ -2,7 +2,8 @@
 import sys
 from pathlib import Path
 
-# Ensure repo root is on the path so tools.connectors is importable when run directly
+# Use repo root on path (not tools/) so module identity matches test imports (tools.connectors.*)
+# This avoids ConfigError being raised as `connectors.config.ConfigError` vs `tools.connectors.config.ConfigError`
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.connectors import ALL_CONNECTORS
@@ -32,15 +33,15 @@ def run_list():
         if instance.is_configured():
             configured.append((instance.name, badge))
         else:
-            not_configured.append(instance.name)
+            not_configured.append((instance.name, badge))
 
     for name, badge in configured:
         print(f"  ✓ {name}{badge}")
 
     if not_configured:
         print()
-        for name in not_configured:
-            print(f"  ○ {name}  (not configured)")
+        for name, badge in not_configured:
+            print(f"  ○ {name}{badge}  (not configured)")
 
     print(f"\n  {len(configured)} connected, {len(not_configured)} not configured.")
     print(f"  Edit ~/.invoicepilot/config.yml to add more services.")
