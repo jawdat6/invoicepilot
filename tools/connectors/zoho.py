@@ -1,6 +1,4 @@
 import json
-import os
-import tempfile
 from datetime import date
 from pathlib import Path
 
@@ -65,6 +63,7 @@ class ZohoConnector(BaseConnector):
         period = start.strftime("%Y-%m")
         files = []
         count = 0
+        failed = 0
 
         for org_name, org_id in org_ids.items():
             if not org_id or org_id == "REPLACE_ME":
@@ -128,10 +127,10 @@ class ZohoConnector(BaseConnector):
                         files.append(pdf_file)
                         count += 1
                     except Exception:
-                        pass
+                        failed += 1
 
                 if not data.get("page_context", {}).get("has_more_page"):
                     break
                 page += 1
 
-        return ConnectorResult(connector=self.name, files=files, count=count, skipped=0, error=None, hint=None)
+        return ConnectorResult(connector=self.name, files=files, count=count, skipped=failed, error=None, hint=None)
