@@ -1,4 +1,3 @@
-import os
 import yaml
 from pathlib import Path
 
@@ -33,7 +32,7 @@ def load_config(path: Path) -> dict:
     unconfigured = []
     for service, values in connectors.items():
         if isinstance(values, dict):
-            if all(v == "REPLACE_ME" for v in values.values() if isinstance(v, str)):
+            if all(v == "REPLACE_ME" for v in values.values()):
                 unconfigured.append(service)
 
     raw["_unconfigured"] = unconfigured

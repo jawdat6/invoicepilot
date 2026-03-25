@@ -1,6 +1,5 @@
 # tests/test_config.py
 import pytest
-import os
 import tempfile
 from pathlib import Path
 from tools.connectors.config import load_config, ConfigError
@@ -41,10 +40,10 @@ connectors: {}
 
 
 def write_config(content: str) -> Path:
-    f = tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False)
-    f.write(content)
-    f.flush()
-    return Path(f.name)
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False) as f:
+        f.write(content)
+        path = Path(f.name)
+    return path
 
 
 def test_load_valid_config():
