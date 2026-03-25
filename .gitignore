@@ -7,3 +7,8 @@ __pycache__/
 .venv/
 dist/
 *.egg-info/
+.env
+*.pem
+*.key
+credentials.json
+service-account*.json
