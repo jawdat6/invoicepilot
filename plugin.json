@@ -1,6 +1,8 @@
 {
   "name": "invoicepilot",
   "version": "1.0.0",
+  "homepage": "https://github.com/jawdat6/invoicepilot",
+  "repository": "https://github.com/jawdat6/invoicepilot",
   "description": "Download all your SaaS invoices with one command. Supports AWS, Twilio, MongoDB, Zoho, GoDaddy, Google Cloud, Stripe, and OpenPhone.",
   "author": "InvoicePilot",
   "keywords": ["invoices", "billing", "accounting", "aws", "twilio", "stripe"],
