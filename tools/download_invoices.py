@@ -15,7 +15,6 @@ from connectors.config import load_config, ConfigError
 DEFAULT_CONFIG_PATH = Path.home() / ".invoicepilot" / "config.yml"
 LOCK_FILE = Path.home() / ".invoicepilot" / ".lock"
 API_TIMEOUT = 60
-PLAYWRIGHT_TIMEOUT = 120
 
 
 def months_between(start: date, end: date) -> list[date]:
@@ -140,12 +139,25 @@ def run_download(query: str, overwrite: bool = False, connectors_filter: list[st
                             hint="Try again later",
                             timed_out=True,
                         )
+                    except Exception as e:
+                        from connectors.base import ConnectorResult
+                        result = ConnectorResult(
+                            connector=connector.name, files=[], count=0, skipped=0,
+                            error=str(e), hint=None,
+                        )
                     _merge_result(all_results, result)
 
             # Run Playwright connectors serially
             for connector in playwright_connectors:
                 svc_dir = month_dir / connector.name.replace(" ", "")
-                result = connector.download(month_start, month_end, svc_dir)
+                try:
+                    result = connector.download(month_start, month_end, svc_dir)
+                except Exception as e:
+                    from connectors.base import ConnectorResult
+                    result = ConnectorResult(
+                        connector=connector.name, files=[], count=0, skipped=0,
+                        error=str(e), hint=None,
+                    )
                 _merge_result(all_results, result)
 
         # Print summary
