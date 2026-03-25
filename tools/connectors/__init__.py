@@ -1,3 +1,9 @@
+import importlib.util
+import inspect
+from pathlib import Path
+
+from .base import BaseConnector
+
 _connectors = []
 
 try:
@@ -47,5 +53,22 @@ try:
     _connectors.append(OpenPhoneConnector)
 except ImportError:
     pass
+
+_user_connector_dir = Path.home() / ".invoicepilot" / "connectors"
+if _user_connector_dir.exists():
+    for _py_file in sorted(_user_connector_dir.glob("*.py")):
+        try:
+            _spec = importlib.util.spec_from_file_location(_py_file.stem, _py_file)
+            _mod = importlib.util.module_from_spec(_spec)
+            _spec.loader.exec_module(_mod)
+            for _name, _cls in inspect.getmembers(_mod, inspect.isclass):
+                if (
+                    issubclass(_cls, BaseConnector)
+                    and _cls is not BaseConnector
+                    and _cls not in _connectors
+                ):
+                    _connectors.append(_cls)
+        except Exception as _e:
+            print(f"  Warning: could not load user connector {_py_file.name}: {_e}")
 
 ALL_CONNECTORS = _connectors

@@ -10,6 +10,10 @@
     {
       "name": "invoicepilot",
       "path": "skills/invoicepilot.md"
+    },
+    {
+      "name": "invoicepilot_add",
+      "path": "skills/connector_add.md"
     }
   ],
   "tools": [
