@@ -1,15 +1,17 @@
 import sys
-import json
 import argparse
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 from datetime import date, timedelta
 from pathlib import Path
 from calendar import monthrange
 
+from dateutil.parser import parse as dateparse
+
 # Ensure tools/ is on the path regardless of where the script is invoked from
 sys.path.insert(0, str(Path(__file__).parent))
 
 from connectors import ALL_CONNECTORS
+from connectors.base import ConnectorResult
 from connectors.config import load_config, ConfigError
 
 DEFAULT_CONFIG_PATH = Path.home() / ".invoicepilot" / "config.yml"
@@ -41,13 +43,11 @@ def parse_date_range(query: str) -> tuple[date, date]:
 
     if query.startswith("since "):
         # "since April 2024"
-        from dateutil.parser import parse as dateparse
         start = dateparse(query.replace("since ", "")).date().replace(day=1)
         return start, today
 
     # Try "March 2025" or "Q1 2025"
     try:
-        from dateutil.parser import parse as dateparse
         parsed = dateparse(query).date().replace(day=1)
         last_day = monthrange(parsed.year, parsed.month)[1]
         return parsed, parsed.replace(day=last_day)
@@ -122,9 +122,9 @@ def run_download(query: str, overwrite: bool = False, connectors_filter: list[st
             month_dir = out_base / month_start.strftime("%Y-%m")
 
             # Run API connectors in parallel
-            def run_one(connector):
-                svc_dir = month_dir / connector.name.replace(" ", "")
-                return connector.download(month_start, month_end, svc_dir)
+            def run_one(connector, ms=month_start, me=month_end, md=month_dir):
+                svc_dir = md / connector.name.replace(" ", "")
+                return connector.download(ms, me, svc_dir)
 
             with ThreadPoolExecutor(max_workers=len(api_connectors) or 1) as pool:
                 futures = {pool.submit(run_one, c): c for c in api_connectors}
@@ -132,7 +132,6 @@ def run_download(query: str, overwrite: bool = False, connectors_filter: list[st
                     try:
                         result = future.result(timeout=API_TIMEOUT)
                     except FuturesTimeout:
-                        from connectors.base import ConnectorResult
                         result = ConnectorResult(
                             connector=connector.name, files=[], count=0, skipped=0,
                             error=f"Timed out after {API_TIMEOUT}s",
@@ -140,7 +139,6 @@ def run_download(query: str, overwrite: bool = False, connectors_filter: list[st
                             timed_out=True,
                         )
                     except Exception as e:
-                        from connectors.base import ConnectorResult
                         result = ConnectorResult(
                             connector=connector.name, files=[], count=0, skipped=0,
                             error=str(e), hint=None,
@@ -153,7 +151,6 @@ def run_download(query: str, overwrite: bool = False, connectors_filter: list[st
                 try:
                     result = connector.download(month_start, month_end, svc_dir)
                 except Exception as e:
-                    from connectors.base import ConnectorResult
                     result = ConnectorResult(
                         connector=connector.name, files=[], count=0, skipped=0,
                         error=str(e), hint=None,
@@ -199,14 +196,13 @@ def _merge_result(results: dict, result):
         results[name] = result
     else:
         existing = results[name]
-        from connectors.base import ConnectorResult
         results[name] = ConnectorResult(
             connector=name,
             files=existing.files + result.files,
             count=existing.count + result.count,
             skipped=existing.skipped + result.skipped,
-            error=result.error or existing.error,
-            hint=result.hint or existing.hint,
+            error=existing.error or result.error,
+            hint=existing.hint or result.hint,
             timed_out=result.timed_out or existing.timed_out,
         )
 
